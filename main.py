@@ -1,5 +1,6 @@
 import pygame
 import sys 
+import time
 import pygame_menu as pm 
 from pygame.locals import (
     RLEACCEL,
@@ -12,6 +13,7 @@ from pygame.locals import (
     QUIT,
 )
 
+# Initialize pygame
 pygame.init() 
 
 # Screen 
@@ -21,6 +23,15 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 # Initialize Game Score
 score = 0
 
+# Initialize the Game Difficulty
+game_difficulty = "Easy"
+
+# Global Variable Clock
+clock = pygame.time.Clock()
+
+# Global Variable Pause
+pause = False
+
 # Standard RGB colors 
 RED = (255, 0, 0) 
 GREEN = (0, 255, 0) 
@@ -28,6 +39,9 @@ BLUE = (0, 0, 255)
 CYAN = (0, 100, 100) 
 BLACK = (0, 0, 0) 
 WHITE = (255, 255, 255) 
+BRIGHT_RED = (255,51,51)
+BRIGHT_GREEN = (51,204,51)
+
 
 # Define a Player object by extending pygame.sprite.Sprite
 # The surface drawn on the screen is now an attribute of 'player'
@@ -64,76 +78,120 @@ class Player(pygame.sprite.Sprite):
 
 
 
-# Initialize the Game Difficulty
-game_difficulty = "Easy"
-
 # Function that changes the difficulty of the game
 def Game_Difficulty(dif_list,dif):
+      global game_difficulty
+
+      # Change the game difficulty
       game_difficulty = str(dif)
 
-# Fuction that resumes the game
-def Resume_Game():
-     running = True
-     playFun()
+# Fuction that creates and returns Text for the Screen
+def text_objects(text, font):
+     # Create the text
+     textSurface = font.render(text, True, BLACK)
 
-# Fuction that appears if the palyer press the Escape Key in Game
-def inGameMenuFun():
-     inGameMenu = pm.Menu(title="Menu", 
-                       width=SCREEN_WIDTH, 
-                       height=SCREEN_HEIGHT, 
-                       theme=pm.themes.THEME_GREEN)
+     # Returns the text and it's rectangle (So we can position the Text)
+     return textSurface, textSurface.get_rect()
+
+# Fuction that creates Buttons
+def button(msg,x,y,width,height,inactive_Color,active_Color,action = None):
+     mouse = pygame.mouse.get_pos()
+     click = pygame.mouse.get_pressed()
      
-     # Resume button. If clicked, it takes to the game again
-     inGameMenu.add.button(title="Resume", font_color=WHITE,action=Resume_Game,
-                        background_color=GREEN)
+     if x+width > mouse[0] > x and y+height > mouse[1] > y:
+          pygame.draw.rect(screen, active_Color, (x,y,width,height))
+          if click[0] == 1 and action != None:
+               action()
+     else:
+          pygame.draw.rect(screen, inactive_Color, (x,y,width,height))
 
-     # Dummy label to add some spacing between the Resume button and Exit button
-     inGameMenu.add.label(title="")
-     
-     # Exit Button. If clicked, it closes the window
-     inGameMenu.add.button(title="Exit", action=pm.events.EXIT, 
-                        font_color=WHITE, background_color=RED)
-     
+     smallText = pygame.font.Font("freesansbold.ttf",20)
+     textSurf, textRect = text_objects(msg,smallText)
+     textRect.center = ( (x+(width/2)), (y+(height/2)) )
+     screen.blit(textSurf,textRect)
 
-     #if inGameMenu.get_widget("Resume",False)._onselect:
-         # running = True
+# Fuction that Quits the Game
+def quit_Game():
+     pygame.quit()
+     sys.exit()
 
-     # Lets us loop the in game menu on the screen
-     inGameMenu.mainloop(screen)
+# Fuction that Unpause the Game
+def unpause():
+     global pause
+     pause = False
 
+# Fuction to Pause the Game
+def paused():
+    global pause
+    largeText = pygame.font.SysFont("comicsansms",115)
+    TextSurf, TextRect = text_objects("Paused", largeText)
+    TextRect.center = ((SCREEN_WIDTH/2),(SCREEN_HEIGHT/2))
+    screen.blit(TextSurf, TextRect)
+
+    
+
+    while pause:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+                
+        #screen.fill(WHITE)
+        
+
+        button("Resume",150,450,100,50,GREEN,BRIGHT_GREEN,unpause)
+        button("Quit",450,450,100,50,RED,BRIGHT_RED,quit_Game)
+
+        pygame.display.update()
+        clock.tick(15)  
+   
+
+# Fuctoin of the main game
 def playFun():
      # Set up the drawing window
      game_screen = pygame.display.set_mode([SCREEN_WIDTH, SCREEN_HEIGHT])
 
      # Enters the Score Variable in the scope of playFun() Function
      global score
+     
+     # Enter the global variable pause so we can pause the game
+     global pause
 
-     # Make a global running variable which is used for the game loop
-     global running
+     # Instantiate player. 
+     player = Player()
 
      # Initialize the running variable
      running = True
      while running:
           for event in pygame.event.get():
                if event.type == KEYDOWN:
+                    # If player presses Escape
                     if event.key == K_ESCAPE:
-                         # If palyer presses Escape show In Game Menu
-                         inGameMenuFun()
-                         # Pausses the game
-                         running = False
+                         pause = True
+                         # Pause the game
+                         paused()
                elif event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
+                    quit_Game()
+
                
           #score +=1
           
-          game_screen.fill((255, 255, 255))
+          # Get all the keys currently pressed
+          pressed_keys = pygame.key.get_pressed()
 
-          pygame.draw.circle(screen, (0, 0, 255), (250, 250), 75)
+          # Update the player sprite based on user keypresses
+          player.update(pressed_keys)
+          
+          # Fills the screen with the color black
+          game_screen.fill((0, 0, 0))
 
+          # Draw the player on the screen
+          screen.blit(player.surf, player.rect)
+
+          # Flips the screen
           pygame.display.flip()
 
-# Main Function 
+# Main Function (That is also the main menu at the start of the game)
 def menuFun(): 
 	
 	# List that is displayed while selecting the difficulty 
