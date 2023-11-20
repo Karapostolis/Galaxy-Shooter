@@ -30,9 +30,10 @@ def execute_read_query(connection, query):
         print(f"The error '{e}' occured")
 
 
-player_name = "Player 1"
-player_score = 0
-player_time = " "
+
+
+
+
 
 def insert_Values(player,player_Score,player_Time):
     global player_name
@@ -43,19 +44,39 @@ def insert_Values(player,player_Score,player_Time):
     player_score = player_Score
     player_time = player_Time
 
+    
+    insert_Data_To_SQL()
+
 
 def insert_Data_To_SQL():
+    global connection
     sql_insert_users=f"""
-    INSERT INTO users(name,age,gender)
+    INSERT INTO users (name,score,time)
     values
-    ('{player_name}','{player_score}','{player_time});
+    ('{player_name}','{player_score}','{player_time}');
     """
     execute_query(connection,sql_insert_users)
 
-def main_SQL():
-    connection=create_connection("mydatabase.sql")
 
-    sql_create_users_table="""
+def get_High_Score():
+    global connection
+
+    sql_select_all_users="""
+    SELECT * 
+    FROM users 
+    ORDER BY score DESC
+    LIMIT 3;
+    """
+
+    cname,cusers=execute_read_query(connection,sql_select_all_users)
+    return cusers
+
+player_name = "Player 1"
+player_score = 0
+player_time = " "
+
+connection=create_connection("mydatabase.sql")
+sql_create_users_table="""
     CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -63,11 +84,6 @@ def main_SQL():
     time TEXT
     );
     """
-    execute_query(connection,sql_create_users_table)
+execute_query(connection,sql_create_users_table)
 
-
-
-
-
-    
 

@@ -29,6 +29,9 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 # Initialize Game Score
 score = 0
 
+# The high score list
+high_Score_List = get_High_Score()
+
 # Initialize the Game Difficulty
 game_difficulty = "Easy"
 
@@ -41,10 +44,19 @@ pause = False
 # Global enemy speed
 enemy_speed = 7
 
+# The ratio at which the enemy spawns
+enemy_ration = 250
+
 # Global Player Lives
 player_Lives = 3
 
+# Player Name
 player_Name = "Player 1"
+
+
+# Get current time
+current_Time = datetime.datetime.now()
+
 
 # Standard RGB colors 
 RED = (255, 0, 0) 
@@ -55,7 +67,7 @@ BLACK = (0, 0, 0)
 WHITE = (255, 255, 255) 
 BRIGHT_RED = (255,51,51)
 BRIGHT_GREEN = (51,204,51)
-
+PURPLE = (102,3,162)
 
 # Define a Player object by extending pygame.sprite.Sprite
 # The surface drawn on the screen is now an attribute of 'player'
@@ -197,7 +209,6 @@ def Game_Difficulty(dif_list,dif):
       game_difficulty = str(dif)
       Enemy.set_Difficulty(Enemy)
       
-
 # Fuction that creates and returns Text for the Screen
 def text_objects(text, font):
      # Create the text
@@ -236,6 +247,7 @@ def unpause():
      # Unpause Music
      pygame.mixer.music.unpause()
 
+
 # Fuction to Pause the Game
 def paused():
      global pause
@@ -252,11 +264,14 @@ def paused():
           # Makes the text
           largeText = pygame.font.SysFont("comicsansms",115)
           textSurf, textRect = text_objects("Paused", largeText)
-          textRect.center = ( (SCREEN_WIDTH/2), (SCREEN_HEIGHT/2) )
+          textRect.center = ( (SCREEN_WIDTH/2), (SCREEN_HEIGHT - 500) )
           screen.blit(textSurf,textRect)
 
           # Makes the buttons
           button("Resume",150,450,100,50,GREEN,BRIGHT_GREEN,unpause)
+
+          button("Return to Menu",280,350,150,50,GREEN,CYAN,menuFun)
+
           button("Quit",450,450,100,50,RED,BRIGHT_RED,quit_Game)
 
           # Displays the buttons and the text
@@ -308,13 +323,13 @@ def playFun():
 
      # Enters the Score Variable in the scope of playFun() Function
      global score
-     
+
      # Enter the global variable pause so we can pause the game
      global pause
 
-     # Create a custom event for adding a new enemy
+     # Create a custom event for adding a new enemy, also the time at which the event is called
      ADDENEMY = pygame.USEREVENT + 1
-     pygame.time.set_timer(ADDENEMY, 250)
+     pygame.time.set_timer(ADDENEMY, enemy_ration)
 
      # Instantiate player. 
      player = Player()
@@ -336,6 +351,7 @@ def playFun():
      all_sprites = pygame.sprite.Group()
      all_sprites.add(player)
 
+     # Play the music as long as you are palying the game
      pygame.mixer.music.load('Music/Background_Music.wav')
      pygame.mixer.music.play(-1)
 
@@ -343,6 +359,7 @@ def playFun():
      running = True
      while running:
           Score()
+
           for event in pygame.event.get():
                if event.type == KEYDOWN:
                     # If player presses Escape
@@ -377,7 +394,7 @@ def playFun():
           if pygame.sprite.spritecollideany(player, enemies):
                # If so, then remove the player and stop the loop
                player.kill()
-               insert_Data_To_SQL()
+               insert_Values(player_Name,score,str(current_Time.strftime("%Y-%m-%d %H:%M:%S")))
                running = False
                pause = True
                restart()
@@ -391,6 +408,7 @@ def playFun():
 
 # Main Function (That is also the main menu at the start of the game)
 def menuFun(): 
+
 	
 	# List that is displayed while selecting the difficulty 
     difficulty = [("Easy", "Easy"), 
@@ -403,11 +421,30 @@ def menuFun():
 					height=SCREEN_HEIGHT, 
 					theme=pm.themes.THEME_GREEN) 
     
+    # Creating the main menu
+    highScoreM = pm.Menu(title="High Score", 
+					width=SCREEN_WIDTH, 
+					height=SCREEN_HEIGHT, 
+					theme=pm.themes.THEME_GREEN) 
+    
     # Creating the settings menu 
     settings = pm.Menu(title="Settings", 
                        width=SCREEN_WIDTH, 
                        height=SCREEN_HEIGHT, 
                        theme=pm.themes.THEME_GREEN)
+    
+    if (len(high_Score_List) >= 3):
+         highScoreM.add.label(title=high_Score_List[0],font_color=BLACK,align=pm.locals.ALIGN_CENTER)
+         
+         highScoreM.add.label(title="")
+         
+         highScoreM.add.label(title=high_Score_List[1],font_color=BLACK,align=pm.locals.ALIGN_CENTER)
+         
+         highScoreM.add.label(title="")
+         
+         highScoreM.add.label(title=high_Score_List[2],font_color=BLACK,align=pm.locals.ALIGN_CENTER)
+    else:
+         highScoreM.add.label(title="You must make at least 3 runs to show high score",font_color=BLACK,align=pm.locals.ALIGN_CENTER)
     
     # Text input that takes in the username 
     settings.add.text_input(title="User Name : ", textinput_id="username",default=player_Name,align=pm.locals.ALIGN_LEFT,onchange=change_Name)
@@ -441,6 +478,13 @@ def menuFun():
     # Dummy label to add some spacing between the settings button and exit button 
     mainMenu.add.label(title="") 
 
+    # Settings button. If clicked, it takes to the settings menu 
+    mainMenu.add.button(title="High Score",action=highScoreM ,font_color=WHITE, 
+						background_color=PURPLE)
+    
+    # Dummy label to add some spacing between the settings button and exit button 
+    mainMenu.add.label(title="") 
+
 	# Exit Button. If clicked, it closes the window 
     mainMenu.add.button(title="Settings", action=settings, 
                         font_color=WHITE, background_color=CYAN)  
@@ -457,4 +501,4 @@ def menuFun():
 
 if __name__ == "__main__":
      menuFun()
-     main_SQL()
+     #main_SQL()
