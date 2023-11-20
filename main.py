@@ -1,10 +1,13 @@
 import pygame
 import sys 
-import time
+import time,datetime
 # Import random for random numbers
 import random
 import pygame_menu as pm 
 from os import path
+
+from Sqlite3 import *
+
 from pygame.locals import (
     RLEACCEL,
     K_UP,
@@ -35,6 +38,14 @@ clock = pygame.time.Clock()
 # Global Variable Pause
 pause = False
 
+# Global enemy speed
+enemy_speed = 7
+
+# Global Player Lives
+player_Lives = 3
+
+player_Name = "Player 1"
+
 # Standard RGB colors 
 RED = (255, 0, 0) 
 GREEN = (0, 255, 0) 
@@ -55,11 +66,9 @@ class Player(pygame.sprite.Sprite):
         # Call the parent class (Sprite) constructor
         super(Player, self).__init__()
 
+        # Enter an image a the variable surf and converts it so it has transparent background
         self.surf = pygame.image.load("Assets/Spaceship.png").convert_alpha()
-        #self.surf.set_colorkey((0, 0, 0), RLEACCEL)
-        #self.surf = pygame.Surface((75, 25))
-        # Set the background color
-        #self.surf.fill((255, 255, 255))
+
         # Fetch the rectangle object that has the dimensions of surf
         self.rect = self.surf.get_rect(center = (SCREEN_WIDTH/2, SCREEN_HEIGHT - 100))
         # The x value of center
@@ -69,7 +78,7 @@ class Player(pygame.sprite.Sprite):
         # The last shot
         self.last_shot = pygame.time.get_ticks()
         # Players lives
-        self.lives = 3
+        self.lives = player_Lives
 
 
     # Fuction that handles shooting 
@@ -83,13 +92,11 @@ class Player(pygame.sprite.Sprite):
              bullets.add(bullet)
              #shooting_sound.play()
 
-
-
-
     # Move the sprite based on user keypresses
     def update(self):
         # Get all the keys currently pressed
         pressed_keys = pygame.key.get_pressed()
+        #Player.Lives(Player)
 
         if pressed_keys[K_UP]:
              self.rect.move_ip(0, -10)
@@ -111,18 +118,22 @@ class Player(pygame.sprite.Sprite):
              self.rect.top = 0
         if self.rect.bottom >= SCREEN_HEIGHT:
              self.rect.bottom = SCREEN_HEIGHT
-
+    """
+    # Function for Player's Lives
+    def Lives(self):
+         if player_Lives == 0:
+              Player.kill()
+              print(player_Lives)
+    """
 # Define the enemy object by extending pygame.sprite.Sprite
 # The surface you draw on the screen is now an attribute of 'enemy'
 class Enemy(pygame.sprite.Sprite):
-  
     def __init__(self):
         super(Enemy, self).__init__()
-        self.surf = pygame.image.load("Assets/Enemy.png").convert_alpha()
-        #self.surf.set_colorkey((0, 0, 0), RLEACCEL)
 
-        #self.surf = pygame.Surface((20, 10))
-        #self.surf.fill((255, 255, 255))
+        # Enter an image a the variable surf and converts it so it has transparent background
+        self.surf = pygame.image.load("Assets/Enemy.png").convert_alpha()
+
         # Makes the enemy to be drawn at the top of the screen 
         # Between random(x = 0 - screem_width) and y = -20
         self.rect = self.surf.get_rect(
@@ -132,7 +143,7 @@ class Enemy(pygame.sprite.Sprite):
             )
         )
         # The speed at which the enemy will be moving
-        self.speed = 7
+        self.speed = enemy_speed
 
     # Move the sprite based on speed
     # Remove the sprite when it passes the left edge of the screen
@@ -144,13 +155,27 @@ class Enemy(pygame.sprite.Sprite):
         if pygame.sprite.spritecollideany(self, bullets):
                score = score + 20               
                self.kill()
+     
+    def set_Difficulty(self):
+         global enemy_speed
+         global game_difficulty
+         if game_difficulty == "Easy":
+              enemy_speed = 7
+
+         elif game_difficulty == "Medium":
+              enemy_speed = 10
+              print("I am inside medium if")
+         else:
+              enemy_speed = 15
+         
 
 ## defines the sprite for bullets
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
         pygame.sprite.Sprite.__init__(self)
-        self.surf = pygame.image.load('Assets/Laser.png').convert()
-        self.surf.set_colorkey(BLACK)
+
+        # Enter an image a the variable surf and converts it so it has transparent background
+        self.surf = pygame.image.load('Assets/Laser.png').convert_alpha()
         self.rect = self.surf.get_rect()
         ## place the bullet according to the current position of the player
         self.rect.bottom = y 
@@ -170,6 +195,8 @@ def Game_Difficulty(dif_list,dif):
 
       # Change the game difficulty
       game_difficulty = str(dif)
+      Enemy.set_Difficulty(Enemy)
+      
 
 # Fuction that creates and returns Text for the Screen
 def text_objects(text, font):
@@ -206,9 +233,15 @@ def unpause():
      global pause
      pause = False
 
+     # Unpause Music
+     pygame.mixer.music.unpause()
+
 # Fuction to Pause the Game
 def paused():
      global pause
+
+     # Pause Music
+     pygame.mixer.music.pause()
      
      while pause:
           for event in pygame.event.get():
@@ -234,14 +267,15 @@ def paused():
 def restart():
      global pause
      global score
+
+     # Stop Music
+     pygame.mixer.music.stop()
      score = 0
      while pause:
           for event in pygame.event.get():
                if event.type == pygame.QUIT:
                     pygame.quit()
                     quit()
-
-          #screen.fill(WHITE)
 
           smallText = pygame.font.SysFont("comicsansms",115)
           textSurf, textRect = text_objects("You Lost",smallText)
@@ -261,6 +295,11 @@ def Score():
      textRect.center = ( SCREEN_WIDTH-70, SCREEN_HEIGHT-30 )
      screen.blit(textSurf,textRect)
      pygame.display.update()
+
+# Change the name of the player
+def change_Name(name):
+     global player_Name
+     player_Name = name
 
 # Fuctoin of the main game
 def playFun():
@@ -296,6 +335,9 @@ def playFun():
      global all_sprites
      all_sprites = pygame.sprite.Group()
      all_sprites.add(player)
+
+     pygame.mixer.music.load('Music/Background_Music.wav')
+     pygame.mixer.music.play(-1)
 
      # Initialize the running variable
      running = True
@@ -335,6 +377,7 @@ def playFun():
           if pygame.sprite.spritecollideany(player, enemies):
                # If so, then remove the player and stop the loop
                player.kill()
+               insert_Data_To_SQL()
                running = False
                pause = True
                restart()
@@ -366,9 +409,18 @@ def menuFun():
                        height=SCREEN_HEIGHT, 
                        theme=pm.themes.THEME_GREEN)
     
+    # Text input that takes in the username 
+    settings.add.text_input(title="User Name : ", textinput_id="username",default=player_Name,align=pm.locals.ALIGN_LEFT,onchange=change_Name)
+    
+    # Dummy label to add some spacing between the Restore Defaults button and Return To Main Menu button 
+    settings.add.label(title="") 
+    
     # Selector to choose between the types of difficulties available 
     settings.add.selector(title="Difficulty\t", items=difficulty,onchange = Game_Difficulty, 
                           selector_id="difficulty", default=0, align=pm.locals.ALIGN_LEFT)
+    
+    # Dummy label to add some spacing between the Restore Defaults button and Return To Main Menu button 
+    settings.add.label(title="") 
     
     # Button to reset the values in settings tto their default
     settings.add.button(title="Restore Defaults", action=settings.reset_value, 
@@ -405,3 +457,4 @@ def menuFun():
 
 if __name__ == "__main__":
      menuFun()
+     main_SQL()
